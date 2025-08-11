@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Diamonds & Deep Earth — Interactive</title>
+<style>
+  :root{
+    --bg:#0b1020; --panel:#121a33; --ink:#e7ecff; --muted:#aab3d9; --accent:#7bd8ff; --accent2:#ff88d2; --ok:#7dffb3; --warn:#ffd36b; --bad:#ff846b;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:radial-gradient(1200px 800px at 20% -10%,#1b254a,transparent),
+                     radial-gradient(1000px 600px at 120% 20%,#1a2d35,transparent),
+                     var(--bg); color:var(--ink); font:16px/1.45 system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif}
+  header{padding:28px 20px 8px; text-align:center}
+  h1{font-size:clamp(26px,4.5vw,40px); margin:0 0 10px; letter-spacing:.3px}
+  p.lede{color:var(--muted); max-width:920px; margin:0 auto 18px}
+  .grid{display:grid; grid-template-columns:repeat(12,1fr); gap:16px; padding:16px; max-width:1200px; margin:0 auto}
+  .card{grid-column:span 12; background:linear-gradient(180deg,rgba(255,255,255,.04),rgba(255,255,255,.015)); border:1px solid rgba(255,255,255,.08); border-radius:18px; box-shadow:0 10px 30px rgba(0,0,0,.35); padding:18px}
+  @media(min-width:900px){ .span6{grid-column:span 6} .span4{grid-column:span 4} }
+  h2{font-size:20px; margin:0 0 10px}
+  h3{font-size:17px; margin:12px 0 8px; color:var(--accent)}
+  .small{font-size:13px; color:var(--muted)}
+  .row{display:flex; gap:14px; align-items:center; flex-wrap:wrap}
+  .chip{font-size:12px; padding:4px 8px; border-radius:999px; border:1px solid rgba(255,255,255,.15); color:var(--muted)}
+  .slider{width:100%}
+  .out{font-weight:600}
+  .tag{display:inline-block; padding:2px 8px; border-radius:999px; font-size:12px; margin-left:8px}
+  .ok{background:rgba(125,255,179,.12); color:var(--ok); border:1px solid rgba(125,255,179,.35)}
+  .warn{background:rgba(255,211,107,.08); color:var(--warn); border:1px solid rgba(255,211,107,.35)}
+  .bad{background:rgba(255,132,107,.08); color:var(--bad); border:1px solid rgba(255,132,107,.35)}
+  .muted{color:var(--muted)}
+  .tabs{display:flex; gap:8px; margin:10px 0}
+  .tab{cursor:pointer; user-select:none; padding:8px 10px; border-radius:12px; border:1px solid rgba(255,255,255,.1); background:rgba(255,255,255,.03)}
+  .tab.active{border-color:rgba(255,255,255,.25); box-shadow:inset 0 0 0 1px rgba(255,255,255,.08)}
+  .pillnote{font-size:12px; padding:6px 10px; background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.1); border-radius:12px}
+  .legend{display:flex; gap:12px; align-items:center; flex-wrap:wrap}
+  .legend span{display:inline-flex; align-items:center; gap:6px}
+  .sw{width:12px; height:12px; border-radius:3px; display:inline-block}
+  .diamond{background:#7dffb3}
+  .graphite{background:#ff846b}
+  .mantle{background:#7bd8ff}
+  svg{width:100%; height:auto}
+  .foot{color:var(--muted); font-size:12px}
+  .kbd{font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; font-size:12px; padding:.1em .4em; border:1px solid rgba(255,255,255,.2); border-radius:6px}
+  .btn{cursor:pointer; padding:8px 12px; border-radius:10px; border:1px solid rgba(255,255,255,.15); background:rgba(255,255,255,.04); color:var(--ink)}
+  .flip-wrap{display:grid; grid-template-columns:1fr 1fr; gap:8px}
+  .flip{
+    position:relative; border-radius:16px; overflow:hidden; border:1px solid rgba(255,255,255,.1);
+    perspective:800px; min-height:120px; background:rgba(255,255,255,.02)
+  }
+  .flip-inner{position:absolute; inset:0; transition:transform .7s; transform-style:preserve-3d}
+  .flip.flipped .flip-inner{transform:rotateY(180deg)}
+  .face{position:absolute; inset:0; display:grid; align-content:center; justify-items:center; padding:14px; backface-visibility:hidden}
+  .face.back{transform:rotateY(180deg); background:rgba(255,255,255,.04)}
+  .mono{font-variant-numeric:tabular-nums; font-feature-settings:"tnum" on}
+  .hr{height:1px; background:linear-gradient(90deg,transparent, rgba(255,255,255,.12), transparent); margin:16px 0}
+  /* Figures */
+  figure{margin:14px 0; text-align:center}
+  figure img{max-width:100%; border-radius:14px; border:1px solid rgba(255,255,255,.12); background:rgba(255,255,255,.02)}
+  figcaption{font-size:12px; color:var(--muted); margin-top:6px}
+  .btn.active{border-color:rgba(255,255,255,.35); box-shadow:inset 0 0 0 1px rgba(255,255,255,.18)}
+  /* Diagnostics */
+  details.debug{max-width:1200px; margin:0 auto 16px; color:var(--muted)}
+  details.debug summary{cursor:pointer}
+  .pass{color:#7dffb3}
+  .fail{color:#ff846b}
+</style>
+</head>
+<body>
+<header>
+  <h1>How Diamonds Are Made — and Why It’s Geology’s Coolest Story</h1>
+  <p class="lede">A hands-on, think-like-a-geologist guide for curious minds. Explore pressure–temperature stability, crystal structures, and the volcanic “elevators” that rocket diamonds to the surface. No fluff — real science, clear visuals.</p>
+</header>
+
+<main class="grid">
+  <!-- Deep-Earth Overview -->
+  <section class="card span12" id="overview">
+    <h2>The Deep‑Earth Setup (what must be true for diamond to form)</h2>
+    <p>Natural diamonds are <em>mantle minerals</em>. The most common population grew in the keels of ancient continents (cratons) at depths of roughly <strong>120–200&nbsp;km</strong>, inside peridotite or eclogite host rocks, at temperatures of about <strong>900–1300&nbsp;°C</strong>. A minority formed even deeper (the “super‑deep” population) in the transition zone and lower mantle. Regardless of the exact neighborhood, five ingredients line up:</p>
+    <ol>
+      <li><strong>Carbon is present</strong> — in fluids/melts or as carbonates; some carbon was recycled by subduction, some was primordial mantle carbon.</li>
+      <li><strong>High pressure</strong> — on the order of several <strong>GPa</strong> (think ~30&nbsp;km per GPa as a rough conversion). High pressure favors the sp³, tetrahedral network.</li>
+      <li><strong>Goldilocks temperature</strong> — hot enough for atoms to move and crystallize; not so hot that diamond is unstable along the local geotherm.</li>
+      <li><strong>A host rock & fluids</strong> — chemistry matters; metal‑rich or carbonate‑bearing fluids help move carbon and seed growth.</li>
+      <li><strong>Rapid delivery</strong> — volatile‑charged magmas (kimberlites/lamproites) must rocket diamonds to the surface before they react away.</li>
+    </ol>
+    <figure>
+      <img src="phy4image1.png" alt="Labeled cross‑section of Earth showing crust, lithosphere, asthenosphere, diamond stability window, and a kimberlite pipe rising to the surface.">
+      <figcaption>Big picture: where diamonds live and how they get here.</figcaption>
+    </figure>
+    <!-- IMAGE PROMPT for phy4image1.png: Scientific‑American style cross‑section of Earth’s upper mantle under a craton. Label: Crust, Lithospheric mantle (keel), Asthenosphere, 120–200 km diamond stability swath shaded, geotherm curve, and a kimberlite pipe with crater, diatreme, and root. Clean vectors, dark theme to match page. -->
+  </section>
+
+  <!-- Evidence & Ages -->
+  <section class="card span6" id="evidence">
+    <h2>How we know diamonds are deep: evidence, not lore</h2>
+    <h3>Inclusions as time‑capsules</h3>
+    <p>Tiny trapped minerals inside diamonds record the pressure–temperature world they grew in. Examples include high‑pressure <em>majorite garnet</em> (requires deep formation) and iron‑nickel‑carbon‑sulfur droplets from metallic melts. Some inclusions transform on the way up, but their chemistry still whispers the original conditions.</p>
+    <figure>
+      <img src="phy4image2.png" alt="Microscope view of a diamond with a tiny inclusion, annotated callouts to mineral type and growth zones.">
+      <figcaption>Inclusions: chemical postcards from the mantle.</figcaption>
+    </figure>
+    <!-- IMAGE PROMPT for phy4image2.png: Macro/microscope composite image of a faceted diamond showing an inclusion with labeled callouts (e.g., majorite garnet / metallic droplet). Subtle cross‑polarized look, educational annotations. -->
+    <h3>Isotopes & clocks</h3>
+    <p>Isotopic ratios of carbon and trace elements in inclusions let geologists date diamonds. Many cratonic diamonds are <strong>billions of years</strong> old (often 1–3&nbsp;Ga), far older than coal. Different carbon isotopes also separate mantle‑like sources from recycled, surface‑derived carbon.</p>
+  </section>
+
+  <!-- Properties deeper dive -->
+  <section class="card span6" id="properties">
+    <h2>Structure → Properties (why diamond is hard, bright, and cool to the touch)</h2>
+    <ul>
+      <li><strong>Bonding:</strong> Diamond’s sp³ network bonds each C to 4 neighbors at ~109.5°; graphite is sp², 3 neighbors in sheets with weak forces between layers.</li>
+      <li><strong>Hardness:</strong> Diamond tops the Mohs scale at <em>10</em>; graphite is ~<em>1–2</em>. Same element, orders‑of‑magnitude difference.</li>
+      <li><strong>Thermal conductivity:</strong> Diamond conducts heat extremely well (thousands of W·m⁻¹·K⁻¹), which is why it can feel cool: it wicks heat from your skin.</li>
+      <li><strong>Optics:</strong> High refractive index and strong dispersion give diamond its “sparkle”; cutting angles exploit this physics.</li>
+      <li><strong>Density:</strong> Diamond (~3.5 g·cm⁻³) is denser than graphite (~2.2 g·cm⁻³) because the 3D framework packs atoms more tightly.</li>
+    </ul>
+    <figure>
+      <img src="phy4image3.png" alt="Side‑by‑side schematic: diamond cubic lattice vs graphite hexagonal layers with labels for bonds and angles.">
+      <figcaption>Same carbon, different architectures.</figcaption>
+    </figure>
+    <!-- IMAGE PROMPT for phy4image3.png: Clean comparative diagram: left — diamond cubic structure (sp³ tetrahedral network) with bond angles; right — graphite layered hexagonal sheets (sp²), showing weak interlayer spacing. -->
+  </section>
+
+  <!-- Kimberlite pipes explained visually -->
+  <section class="card span12" id="pipes">
+    <h2>Kimberlite “elevators” (visual guide)</h2>
+    <p>Kimberlites are volatile‑rich magmas that rise fast, erode the surrounding rock, and explode near the surface to form carrot‑shaped <em>pipes</em>. The pipe preserves mantle xenoliths and diamonds if ascent is quick. Most economic diamond deposits are ancient pipes eroded to expose the diatreme and root zones.</p>
+    <figure>
+      <img src="phy4image4.png" alt="Annotated kimberlite pipe diagram: crater, tuff ring, diatreme, hypabyssal/root zone, and surrounding country rock with xenoliths and diamond transport shown.">
+      <figcaption>Typical pipe anatomy and where diamonds ride along.</figcaption>
+    </figure>
+    <!-- IMAGE PROMPT for phy4image4.png: Geological cutaway of a kimberlite pipe with labels (crater, diatreme, hypabyssal/root). Show xenoliths, CO₂/H₂O bubbles, and diamond‑bearing mantle blocks. -->
+  </section>
+
+  <!-- Myth vs Fact -->
+  <section class="card span6" id="mythfact">
+    <h2>Warm‑up: Myth vs Fact</h2>
+    <div class="flip-wrap">
+      <div class="flip" data-flip>
+        <div class="flip-inner">
+          <div class="face front"><strong>“Diamonds are made from coal.”</strong><br><button class="btn small" aria-label="flip">Flip</button></div>
+          <div class="face back"><div><strong>Almost never.</strong> Most natural diamonds formed deep in Earth’s mantle long before coal‑forming plants existed. Coal is a <em>shallow</em>, sedimentary rock; diamonds are a <em>deep mantle</em> story.</div></div>
+        </div>
+      </div>
+      <div class="flip" data-flip>
+        <div class="flip-inner">
+          <div class="face front"><strong>“Diamonds can turn into graphite at the surface.”</strong><br><button class="btn small" aria-label="flip">Flip</button></div>
+          <div class="face back"><div><strong>Thermodynamically true</strong> (graphite is more stable at low pressure), but <strong>kinetically slow</strong>. Your diamonds won’t suddenly crumble. They’re metastable — locked in place by strong bonds.</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="hr"></div>
+    <p class="small">Try It: Click each card to flip. Ask: What clues tell us where a rock formed — depth, pressure, chemistry, or something else?</p>
+  </section>
+
+  <!-- Stability Simple -->
+  <section class="card span6" id="stabilitySimple">
+    <h2>Diamond Stability — The Simple Story</h2>
+    <p>Forget the busy chart. Here’s the essence: <strong>pressure</strong> pushes carbon toward diamond; <strong>temperature</strong> must be in a Goldilocks range so atoms can arrange without the crystal dissolving or flipping to graphite.</p>
+    <div class="row" style="gap:8px; margin:8px 0 10px">
+      <button class="btn scenario" data-scenario="shallow">Shallow crust (low P)</button>
+      <button class="btn scenario active" data-scenario="cratonic">Cratonic mantle (120–200 km)</button>
+      <button class="btn scenario" data-scenario="toohot">Too hot mantle</button>
+    </div>
+    <figure>
+      <img src="phy4image6.png" alt="Clean PT diagram with diamond/graphite fields and a mantle geotherm.">
+      <figcaption>Static diagram for orientation; use the scenario buttons for the story.</figcaption>
+    </figure>
+    <!-- IMAGE PROMPT for phy4image6.png: Clean P–T diagram with shaded diamond/graphite stability fields, a mantle geotherm curve, and three labeled dots for the scenarios. Minimalistic, dark theme to match page. -->
+    <p id="scenarioText" class="pillnote">At ~5–7 GPa (≈150–210 km) and ~900–1300 °C beneath old cratons, the conditions sit inside the <strong>diamond stability field</strong>. With carbon‑bearing fluids present, diamond can grow.</p>
+    <p class="small">Rule‑of‑thumb conversions: 1&nbsp;GPa ≈ ~30&nbsp;km depth; 1000&nbsp;°C in the mantle is normal, not exotic.</p>
+  </section>
+
+  <!-- Crystal Structures -->
+  <section class="card span6" id="crystal" data-testid="crystal">
+    <h2>Crystal Structure Explorer</h2>
+    <div class="tabs" data-testid="tabs">
+      <div class="tab active" data-mode="diamond">Diamond (sp³, tetrahedral)</div>
+      <div class="tab" data-mode="graphite">Graphite (sp², layered)</div>
+    </div>
+    <div id="lattice" style="background:rgba(255,255,255,.03); border-radius:14px; border:1px solid rgba(255,255,255,.1); padding:8px" data-testid="lattice">
+      <svg viewBox="0 0 600 260" aria-label="Lattice diagram"></svg>
+    </div>
+    <p class="small">Diamond’s atoms form a 3D tetrahedral network (each carbon bonded to 4 neighbors) — super rigid. Graphite’s atoms form hexagonal sheets (3 neighbors); sheets slide easily → soft and great lubricant. Same element, different arrangement = <em>polymorphs</em>.</p>
+  </section>
+
+  <!-- Kimberlite Elevator -->
+  <section class="card span6" id="elevator" data-testid="elevator">
+    <h2>“Kimberlite Elevator”: Can the Diamond Make It?</h2>
+    <div class="row">
+      <label for="startDepth">Start Depth (km)</label>
+      <input id="startDepth" class="slider" type="range" min="120" max="700" value="180" step="10"/>
+      <span class="mono" id="sdOut">180</span>
+    </div>
+    <div class="row" style="margin-top:8px">
+      <label for="speed">Ascent Speed (m/s)</label>
+      <input id="speed" class="slider" type="range" min="0.5" max="50" value="10" step="0.5"/>
+      <span class="mono" id="vOut">10.0</span>
+    </div>
+    <p>
+      Estimated time to surface: <span class="out mono" id="timeOut"></span>
+      <span id="surviveTag" class="tag"></span>
+    </p>
+    <p class="small">Fast ascent in volatile‑rich magmas (kimberlites/lamproites) can preserve diamonds by minimizing reactions and resorption. Slow ascent gives more time for transformation or etching. This is a qualitative model for intuition, not a precise predictor.</p>
+  </section>
+
+  <!-- Lab-grown vs Natural -->
+  <section class="card span6" id="labvsnat">
+    <h2>Natural vs Lab‑Grown Diamonds</h2>
+    <div class="flip-wrap">
+      <div class="flip" data-flip>
+        <div class="flip-inner">
+          <div class="face front"><strong>HPHT growth</strong><br><span class="small">High Pressure High Temperature</span><br><button class="btn small">Flip</button></div>
+          <div class="face back"><div>Carbon dissolves in metal under <em>GPa</em> pressures and ~1,300–1,600 °C, then crystallizes on a tiny diamond seed. Fast growth; metallic inclusions possible.</div></div>
+        </div>
+      </div>
+      <div class="flip" data-flip>
+        <div class="flip-inner">
+          <div class="face front"><strong>CVD growth</strong><br><span class="small">Chemical Vapor Deposition</span><br><button class="btn small">Flip</button></div>
+          <div class="face back"><div>Methane‑rich plasma adds carbon layer‑by‑layer onto a seed at low pressure. Great control of color/defects; different growth textures.</div></div>
+        </div>
+      </div>
+    </div>
+    <p class="small">Natural diamonds carry <em>inclusions</em> (tiny trapped minerals) that act like time‑capsules of mantle conditions. Lab‑grown diamonds can be optically identical but show different microscopic growth features.</p>
+  </section>
+
+  <!-- Field Skills & Home Lab Ideas -->
+  <section class="card span6" id="skills">
+    <h2>Feed the Curiosity: Field Skills & Home Lab</h2>
+    <ul>
+      <li><strong>Hardness testing:</strong> Try a Mohs kit (or DIY surrogates). Quartz (7) scratches glass; corundum (9) scratches quartz; diamond (10) scratches everything. Practice careful observation — no forceful gouging!</li>
+      <li><strong>Streak & luster:</strong> Rub minerals on a streak plate (unglazed tile). Metallic vs vitreous luster, white vs colored streaks — great classification practice.</li>
+      <li><strong>Crystal growth at home:</strong> Grow alum or sugar crystals. Discuss nucleation, supersaturation, and why real diamonds need extreme P–T to arrange carbon into sp³ networks.</li>
+      <li><strong>Map reading:</strong> Print a simple geologic map of your area and mark rock types. Ask: where might ancient volcanic pipes be? Why here, not there?</li>
+    </ul>
+    <p class="small">Pro tip: Keep a field notebook. Date each observation, sketch structures, and write a one‑sentence hypothesis. Science = curiosity + evidence.</p>
+  </section>
+
+  <section class="card span12">
+    <h2>Big Ideas to Take Away</h2>
+    <ol>
+      <li><strong>Same element, different structures → different properties.</strong> (diamond vs graphite)</li>
+      <li><strong>Environment matters.</strong> Diamonds mostly form deep in the mantle under high pressure and specific temperatures.</li>
+      <li><strong>Delivery is dramatic.</strong> Rapid volcanic ascent preserves diamonds for us to find at the surface.</li>
+      <li><strong>Evidence beats myths.</strong> Inclusions, isotopes, and field relationships tell the real story — not the coal myth.</li>
+    </ol>
+    <p class="foot">Designed for sophisticated young learners. All numeric thresholds are intentionally simplified to support intuition.</p>
+  </section>
+
+  <!-- Diagnostics: Natural vs Lab‑grown (more clues) -->
+  <section class="card span12" id="diagnostics">
+    <h2>Distinguishing natural vs lab‑grown (microscope‑level clues)</h2>
+    <div class="grid" style="grid-template-columns:repeat(12,1fr); gap:12px; padding:0">
+      <div class="card span6" style="background:transparent; border:none; box-shadow:none; padding:0">
+        <h3>Natural tendencies</h3>
+        <ul>
+          <li>Irregular growth zoning; mixed nitrogen aggregation states common.</li>
+          <li>Inclusions consistent with mantle minerals (e.g., garnet, olivine, sulfides).</li>
+          <li>Strain patterns from long geologic histories.</li>
+        </ul>
+      </div>
+      <div class="card span6" style="background:transparent; border:none; box-shadow:none; padding:0">
+        <h3>Lab‑grown tendencies</h3>
+        <ul>
+          <li><strong>HPHT:</strong> Metallic flux inclusions; cuboctahedral growth; characteristic fluorescence patterns.</li>
+          <li><strong>CVD:</strong> Layered growth striations; possible silicon/nitrogen‑vacancy centers from process gases.</li>
+          <li>Often very low nitrogen (Type IIa) unless intentionally doped.</li>
+        </ul>
+      </div>
+    </div>
+    <figure>
+      <img src="phy4image5.png" alt="Side‑by‑side micrographs: natural diamond zoning/inclusions vs CVD/HPHT growth textures, with discrete annotations.">
+      <figcaption>Different growth histories leave different microscopic fingerprints.</figcaption>
+    </figure>
+    <!-- IMAGE PROMPT for phy4image5.png: Two‑panel micrograph collage with annotations: left — natural diamond with irregular zoning/inclusions; right — lab‑grown examples (HPHT metallic flux pinpoints, CVD layered striations). -->
+  </section>
+
+  <!-- Quick Glossary -->
+  <section class="card span6" id="glossary">
+    <h2>Glossary (fast but precise)</h2>
+    <ul>
+      <li><strong>Polymorph:</strong> Same chemical formula, different crystal structure (diamond vs graphite).</li>
+      <li><strong>Geotherm:</strong> How temperature changes with depth inside Earth.</li>
+      <li><strong>Inclusion:</strong> Tiny bit of trapped material inside a crystal that records formation conditions.</li>
+      <li><strong>Kimberlite:</strong> Volatile‑rich magma that can carry diamonds to the surface.</li>
+      <li><strong>GPa:</strong> Gigapascal, a unit of pressure. ~1&nbsp;GPa ≈ 30&nbsp;km depth in the upper mantle (very rough rule‑of‑thumb).</li>
+    </ul>
+  </section>
+
+  <!-- Discussion prompts -->
+  <section class="card span6" id="prompts">
+    <h2>Think like a geologist (discussion prompts)</h2>
+    <ol>
+      <li>Why might some cratons be rich in diamonds while others are barren?</li>
+      <li>What trade‑offs control whether a diamond survives the trip up a kimberlite?</li>
+      <li>If graphite is lower‑energy at the surface, why don’t diamonds instantly convert?</li>
+      <li>What evidence would convince you a diamond formed in the transition zone?</li>
+    </ol>
+  </section>
+
+  <!-- Illustrated Gallery: placeholders you can generate -->
+  <section class="card span12" id="gallery">
+    <h2>Illustrated gallery (image placeholders)</h2>
+    <div class="grid" style="grid-template-columns:repeat(12,1fr); gap:12px; padding:0">
+      <figure class="card span4"><img src="phy4image6.png" alt="PT diagram with diamond/graphite fields, geotherm, and labeled windows."><figcaption>Phase diagram overview</figcaption></figure>
+      <figure class="card span4"><img src="phy4image3.png" alt="Diamond vs graphite structures."><figcaption>Polymorphs compared</figcaption></figure>
+      <figure class="card span4"><img src="phy4image4.png" alt="Kimberlite pipe anatomy."><figcaption>Kimberlite pipe</figcaption></figure>
+    </div>
+    <!-- IMAGE PROMPT for phy4image6.png: Clean P–T diagram with shaded diamond/graphite stability fields, mantle geotherm curve, and example points. Labels large, legible. -->
+  </section>
+</main>
+
+<!-- Simple diagnostics for devs (collapsed) -->
+<details class="debug" open>
+  <summary>Developer diagnostics (click to toggle)</summary>
+  <ul id="test-results"></ul>
+</details>
+
+<script>
+(function(){
+  // Run after DOM is fully parsed
+  function onReady(fn){
+    if(document.readyState === 'loading'){ document.addEventListener('DOMContentLoaded', fn); }
+    else { fn(); }
+  }
+
+  onReady(()=>{
+    const resultsEl = document.getElementById('test-results');
+    function report(name, pass, msg=''){
+      if(!resultsEl) return;
+      const li = document.createElement('li');
+      li.innerHTML = `<strong>${name}:</strong> <span class="${pass?'pass':'fail'}">${pass?'PASS':'FAIL'}</span> ${msg? '— '+msg:''}`;
+      resultsEl.appendChild(li);
+    }
+
+    // 1) Scenario toggles (text only)
+    (function(){
+      const elText = document.getElementById('scenarioText');
+      const buttons = document.querySelectorAll('.scenario');
+      const copy = {
+        shallow: { text: "Low pressure (≲1–2 GPa; upper crust) puts carbon in the <strong>graphite</strong> field. Diamonds won’t form here, and any that arrived would tend to resorb or convert over geologic time (slowly)." },
+        cratonic:{ text: "~5–7 GPa (≈150–210 km) and ~900–1300 °C under an old craton: that’s squarely in the <strong>diamond stability field</strong>. Add carbon‑bearing fluids/melts and crystal growth is favorable." },
+        toohot:  { text: "Even deep in the mantle, if the local geotherm is very hot (≥1300–1600 °C), diamonds can <strong>resorb</strong> back into melts/fluids or shift toward graphite stability. Temperature matters as much as pressure." }
+      };
+      function setScenario(k){
+        if(!elText) return;
+        elText.innerHTML = copy[k].text;
+        buttons.forEach(b=> b.classList.toggle('active', b.dataset.scenario===k));
+      }
+      if(buttons.length){
+        buttons.forEach(b=> b.addEventListener('click', ()=> setScenario(b.dataset.scenario)));
+        setScenario('cratonic');
+        report('Scenario toggles mounted', true);
+      }else{
+        report('Scenario toggles mounted', false, 'No .scenario buttons found');
+      }
+    })();
+
+    // 2) Flip cards — non‑critical
+    (function(){
+      const flips = document.querySelectorAll('[data-flip]');
+      flips.forEach(el=> el.addEventListener('click', ()=> el.classList.toggle('flipped')));
+      report('Flip cards initialized', true, flips.length+" card(s)");
+    })();
+
+    // 3) Lattice diagrams (diamond/graphite)
+    (function(){
+      const latticeSVG = document.querySelector('#lattice svg');
+      if(!latticeSVG){ report('Lattice SVG present', false, '#lattice svg not found'); return; }
+
+      function drawDiamond(){
+        latticeSVG.innerHTML='';
+        // Tetrahedral network projected to 2D — draw a cube with body bonds
+        const cx=300, cy=120, s=120;
+        const pts={ A:[cx-s,cy-s], B:[cx+s,cy-s], C:[cx+s,cy+s], D:[cx-s,cy+s], E:[cx,cy-20], F:[cx+40,cy+10], G:[cx,cy+40], H:[cx-40,cy+10] };
+        const lines=[["A","B"],["B","C"],["C","D"],["D","A"],["A","C"],["B","D"],["E","F"],["F","G"],["G","H"],["H","E"],["E","G"],["F","H"]];
+        lines.forEach(([u,v])=>{
+          const p=document.createElementNS('http://www.w3.org/2000/svg','path');
+          p.setAttribute('d',`M ${pts[u][0]} ${pts[u][1]} L ${pts[v][0]} ${pts[v][1]}`);
+          p.setAttribute('stroke','rgba(255,255,255,.6)');
+          p.setAttribute('fill','none');
+          latticeSVG.appendChild(p);
+        });
+        // Atoms
+        ;['A','B','C','D','E','F','G','H'].forEach(k=>{
+          const c=document.createElementNS('http://www.w3.org/2000/svg','circle');
+          c.setAttribute('cx',pts[k][0]); c.setAttribute('cy',pts[k][1]);
+          c.setAttribute('r',6); c.setAttribute('fill','#7dffb3'); c.setAttribute('stroke','#0b1020');
+          latticeSVG.appendChild(c);
+        });
+      }
+      function drawGraphite(){
+        latticeSVG.innerHTML='';
+        function hex(x,y,r){ const pts=[]; for(let i=0;i<6;i++){ const a=Math.PI/3*i; pts.push([x+r*Math.cos(a), y+r*Math.sin(a)]) } return 'M '+pts.map(p=>p.join(',')).join(' L ')+' Z'; }
+        for(let row=0; row<2; row++){
+          for(let col=0; col<6; col++){
+            const x=60+col*80 + (row?40:0); const y=80 + row*70;
+            const path=document.createElementNS('http://www.w3.org/2000/svg','path');
+            path.setAttribute('d', hex(x,y,22));
+            path.setAttribute('fill','none');
+            path.setAttribute('stroke','rgba(255,255,255,.6)');
+            latticeSVG.appendChild(path);
+            const c=document.createElementNS('http://www.w3.org/2000/svg','circle');
+            c.setAttribute('cx',x); c.setAttribute('cy',y); c.setAttribute('r',5); c.setAttribute('fill','#ff88d2'); c.setAttribute('stroke','#0b1020');
+            latticeSVG.appendChild(c);
+          }
+        }
+        const txt=document.createElementNS('http://www.w3.org/2000/svg','text');
+        txt.setAttribute('x',20); txt.setAttribute('y',230); txt.setAttribute('fill','var(--muted)');
+        txt.textContent='Parallel hexagonal layers (weak forces between layers → easy to shear).';
+        latticeSVG.appendChild(txt);
+      }
+      function setMode(mode){
+        document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active', t.dataset.mode===mode));
+        if(mode==='diamond') drawDiamond(); else drawGraphite();
+      }
+      document.querySelectorAll('.tab').forEach(t=> t.addEventListener('click', ()=> setMode(t.dataset.mode)));
+      setMode('diamond');
+
+      // Tests for lattice
+      const hasPaths = latticeSVG.querySelectorAll('path').length > 0;
+      report('Lattice initial render', hasPaths, hasPaths? 'diamond view has paths' : 'no paths');
+      setMode('graphite');
+      const graphiteHasHex = latticeSVG.querySelectorAll('path').length > 0;
+      report('Lattice switch to graphite', graphiteHasHex);
+      setMode('diamond');
+    })();
+
+    // 4) Kimberlite elevator
+    (function(){
+      const sd = document.getElementById('startDepth');
+      const v  = document.getElementById('speed');
+      const sdOut = document.getElementById('sdOut');
+      const vOut  = document.getElementById('vOut');
+      const timeOut = document.getElementById('timeOut');
+      const surviveTag = document.getElementById('surviveTag');
+      if(!(sd && v && sdOut && vOut && timeOut && surviveTag)){
+        report('Elevator controls present', false, 'One or more controls missing');
+        return;
+      }
+      function updateElev(){
+        const depth_m = +sd.value * 1000; // km → m
+        const speed   = +v.value;        // m/s
+        const seconds = depth_m / speed;
+        const hrs = seconds/3600;
+        const label = hrs<1? `${(seconds/60).toFixed(1)} min` : hrs<48? `${hrs.toFixed(1)} h` : `${(hrs/24).toFixed(1)} days`;
+        sdOut.textContent = sd.value; vOut.textContent = speed.toFixed(1);
+        timeOut.textContent = label;
+        surviveTag.textContent=''; surviveTag.className='tag';
+        if(hrs<=12){ surviveTag.textContent='High preservation likelihood'; surviveTag.classList.add('ok'); }
+        else if(hrs<=72){ surviveTag.textContent='Intermediate — reactions possible'; surviveTag.classList.add('warn'); }
+        else { surviveTag.textContent='Low — long exposure encourages alteration'; surviveTag.classList.add('bad'); }
+      }
+      sd.addEventListener('input', updateElev);
+      v.addEventListener('input', updateElev);
+      updateElev();
+      // Test
+      const before = timeOut.textContent;
+      v.value = 50; updateElev();
+      const after = timeOut.textContent;
+      report('Elevator updates time', before !== after, `from "${before}" to "${after}"`);
+    })();
+  });
+})();
+</script>
+</body>
+</html>
